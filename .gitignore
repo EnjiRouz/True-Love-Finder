@@ -1,0 +1,8 @@
+.idea/*
+
+*.h5
+**/*.jpeg
+**/*.jpg
+
+!/images-for-dataset/like/connor-1.jpg
+!/images-for-dataset/dislike/markus.jpg
