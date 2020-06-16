@@ -13,6 +13,7 @@ from skimage import transform
 from PIL import Image
 import numpy as np
 import os
+from face_detector import *
 
 # метки классов (keras использует алфавитный порядок для имён классов)
 labels = {
@@ -24,6 +25,11 @@ labels = {
 # загрузка изображения и преобразование его в массив чисел
 def load_image(img_file_path):
     np_image = Image.open(img_file_path)
+    return convert_image_to_numpy_array(np_image)
+
+
+# преобразование изображения в массив чисел
+def convert_image_to_numpy_array(np_image):
     np_image = np.array(np_image).astype('float32') / 255
     np_image = transform.resize(np_image, (200, 200, 3))
     np_image = np.expand_dims(np_image, axis=0)
@@ -47,11 +53,13 @@ if __name__ == "__main__":
     for variation in variations:
 
         # загрузка изображений и преобразование их в массивы чисел
-        images_directory = "images-for-dataset/"+variation
+        # images_directory = "images-for-dataset/" + variation
         # images_directory = "generated-images-for-model/train/" + variation
         # images_directory = "generated-images-for-model/test/" + variation
+        images_directory = "validation-images/" + variation
         for file_name in os.listdir(images_directory):
-            image_array = load_image(os.path.join(images_directory, file_name))
+            image = detect_face(os.path.join(images_directory, file_name))
+            image_array = convert_image_to_numpy_array(image)
 
             # определение ожидаемых классов
             for key, value in labels.items():

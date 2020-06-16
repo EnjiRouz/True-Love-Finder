@@ -1,5 +1,11 @@
 """
-Данный скрипт производит генерацию файлов для создания датасета (как train, так и test выборок)
+Данный скрипт производит генерацию файлов для создания датасета (как train, так и test выборок).
+
+Делает он это следующим образом:
+1. Находит на картинке лицо и обрезает по его границам
+2. Приводит к изображение к пропорциям сторон 1:1 (квадрат)
+3. Изменяет размер на страндартизированный внутри программы
+4. Генерирует заданное количество случайных изображений для train и test выборок на основе исходных
 
 Для того, чтобы запустить его - достаточно закинуть в папку 'images-for-dataset' изображения с теми,
 кто нравится внешне и кто нет (папки 'like' и 'dislike' соответственно).
@@ -14,6 +20,7 @@
 from keras.preprocessing.image import ImageDataGenerator, img_to_array, load_img
 from PIL import Image, ImageFile
 import os
+from face_detector import *
 
 
 # создание квадратного изображения
@@ -49,11 +56,11 @@ def generate_images_for_dataset():
 
     # настройка генератора для изображений, входящих в датасет
     data_generator = ImageDataGenerator(
-        rotation_range=40,
-        width_shift_range=0.2,
-        height_shift_range=0.2,
-        shear_range=0.2,
-        zoom_range=0.2,
+        rotation_range=20,
+        width_shift_range=0.1,
+        height_shift_range=0.1,
+        shear_range=0.1,
+        zoom_range=0.1,
         horizontal_flip=True,
         fill_mode="nearest")
 
@@ -74,20 +81,27 @@ def generate_images_for_dataset():
 
         # преобразование исходных изображений путём изменения размера и приведения их к квадратной форме
         for file_name in os.listdir(raw_data_directory):
-            ImageFile.LOAD_TRUNCATED_IMAGES = False
-            image = Image.open(os.path.join(raw_data_directory, file_name))
-            image.load()
-            image = make_square(image)
-            image = image.resize((image_width, image_height), Image.ANTIALIAS)
-            image.save(os.path.join(generated_train_data_directory, file_name), 'JPEG', quality=90)
+
+            # поиск лица на картинке и обрезка в соответствии с его границами
+            detect_face_and_crop_image(os.path.join(raw_data_directory, file_name),
+                                       os.path.join(generated_train_data_directory, file_name))
+
+            # приведение изображения к квадратной форме и изменение размера
+            if os.path.exists(os.path.join(generated_train_data_directory, file_name)):
+                ImageFile.LOAD_TRUNCATED_IMAGES = False
+                image = Image.open(os.path.join(generated_train_data_directory, file_name))
+                image.load()
+                image = make_square(image)
+                image = image.resize((image_width, image_height), Image.ANTIALIAS)
+                image.save(os.path.join(generated_train_data_directory, file_name), 'JPEG', quality=90)
 
         # создание вариаций исходных изображений (здесь используются другие директории)
         for file_name in os.listdir(generated_train_data_directory):
 
-            # преобразует изображение в массив с определенной структурой (3, 150, 150)
+            # преобразует изображение в массив с определенной структурой shape=(3, 150, 150)
             converted_image = img_to_array(load_img(os.path.join(generated_train_data_directory, file_name)))
 
-            # меняет структуру на (1, 3, 150, 150)
+            # меняет структуру на shape=(1, 3, 150, 150)
             converted_image = converted_image.reshape((1,) + converted_image.shape)
 
             # генерирует случайным образом заданное количество изображений и сохраняет их в указанную директорию
@@ -95,6 +109,6 @@ def generate_images_for_dataset():
             generate_images(data_generator, generated_test_data_directory, converted_image, variation, 5)
 
 
-# TODO подключить нейросетку, которая распознаёт лица, чтобы обрезать фото невручную
 if __name__ == '__main__':
     generate_images_for_dataset()
+    print("Done!")
